@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  savedCoupons  Coupon[]  @relation("UserSavedCoupons")
+  reviews       Review[]
+  notifications Notification[]
+}
+
+model Store {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  slug          String    @unique
+  logo          String?
+  description   String?
+  website       String?
+  affiliateUrl  String?
+  categories    Category[] @relation("StoreCategories")
+  coupons       Coupon[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  metadata      Json?     // For SEO and additional data
+  featured      Boolean   @default(false)
+  avgCashback   Float?
+  clickCount    Int       @default(0)
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  icon        String?
+  description String?
+  stores      Store[]   @relation("StoreCategories")
+  coupons     Coupon[]  @relation("CouponCategories")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  metadata    Json?     // For SEO
+}
+
+model Coupon {
+  id            String    @id @default(uuid())
+  code          String
+  title         String
+  description   String
+  terms         String?
+  discountType  DiscountType
+  discountValue Float
+  startDate     DateTime  @default(now())
+  endDate       DateTime?
+  isActive      Boolean   @default(true)
+  isVerified    Boolean  @default(false)
+  store         Store     @relation(fields: [storeId], references: [id])
+  storeId       String
+  categories    Category[] @relation("CouponCategories")
+  reviews       Review[]
+  savedByUsers  User[]    @relation("UserSavedCoupons")
+  clicks        Int       @default(0)
+  uses          Int       @default(0)
+  successRate   Float     @default(0)
+  metadata      Json?     // For tracking and analytics
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Review {
+  id        String    @id @default(uuid())
+  rating    Int
+  comment   String?
+  verified  Boolean   @default(false)
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  coupon    Coupon    @relation(fields: [couponId], references: [id])
+  couponId  String
+  helpful   Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Analytics {
+  id            String    @id @default(uuid())
+  date          DateTime  @default(now())
+  couponId      String?
+  storeId       String?
+  views         Int       @default(0)
+  clicks        Int       @default(0)
+  conversions   Int       @default(0)
+  revenue       Float     @default(0)
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean   @default(false)
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime  @default(now())
+}
+
+model Newsletter {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  preferences Json?   // Store category preferences
+}
+
+enum Role {
+  USER
+  EDITOR
+  ADMIN
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+  BOGO
+  FREE_SHIPPING
+  OTHER
+}
+
+enum NotificationType {
+  COUPON_EXPIRING
+  NEW_DEAL
+  PRICE_DROP
+  SYSTEM
+}
